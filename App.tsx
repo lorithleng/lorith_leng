@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Download, RefreshCw, Trash2, Zap } from 'lucide-react';
 import JSZip from 'jszip';
@@ -152,7 +151,7 @@ const App: React.FC = () => {
       });
 
       const content = await zip.generateAsync({ type: "blob" });
-      downloadFile(content, "images_optimized.zip");
+      downloadFile(content as Blob, "images_optimized.zip");
     }
   };
 

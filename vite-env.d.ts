@@ -1,4 +1,23 @@
 declare module 'browser-image-compression' {
-  const imageCompression: (file: File, options: any) => Promise<File>;
+  interface Options {
+    maxSizeMB?: number;
+    maxWidthOrHeight?: number;
+    useWebWorker?: boolean;
+    maxIteration?: number;
+    exifOrientation?: number;
+    onProgress?: (p: number) => void;
+    fileType?: string;
+    initialQuality?: number;
+  }
+  function imageCompression(file: File, options: Options): Promise<File>;
   export default imageCompression;
+}
+
+declare module 'jszip' {
+  export default class JSZip {
+    constructor();
+    folder(name: string): JSZip | null;
+    file(name: string, data: Blob | string | Promise<Blob | string>, options?: any): this;
+    generateAsync(options: { type: "blob" | "base64" | "uint8array" | "string" }): Promise<Blob | string | Uint8Array>;
+  }
 }
