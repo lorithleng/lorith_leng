@@ -1,12 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import { Upload, ImagePlus, FileImage } from 'lucide-react';
+import { Upload, ImagePlus } from 'lucide-react';
+import { Language } from '../types';
+import { t } from '../utils/translations';
 
 interface DropZoneProps {
   onFilesAdded: (files: File[]) => void;
   isProcessing: boolean;
+  lang: Language;
 }
 
-const DropZone: React.FC<DropZoneProps> = ({ onFilesAdded, isProcessing }) => {
+const DropZone: React.FC<DropZoneProps> = ({ onFilesAdded, isProcessing, lang }) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -73,16 +76,16 @@ const DropZone: React.FC<DropZoneProps> = ({ onFilesAdded, isProcessing }) => {
             {isDragging ? <Upload size={32} /> : <ImagePlus size={32} />}
         </div>
         <h3 className="text-xl font-semibold text-white mb-2">
-          {isDragging ? 'Drop images to compress' : 'Drag & drop images here'}
+          {isDragging ? t(lang, 'dropActive') : t(lang, 'dropTitle')}
         </h3>
         <p className="text-slate-400 text-sm max-w-sm mx-auto">
-          Supports JPG, PNG, WebP. High quality compression with no dimension loss.
+          {t(lang, 'dropSubtitle')}
         </p>
         <button 
-            type="button" // Prevent form submission if inside a form
+            type="button" 
             className="mt-6 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-blue-900/20"
         >
-            Select Files
+            {t(lang, 'selectFiles')}
         </button>
       </div>
     </div>

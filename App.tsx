@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Download, RefreshCw, Trash2, Zap } from 'lucide-react';
+import { Download, Trash2, Zap, Scissors } from 'lucide-react';
 import JSZip from 'jszip';
 
 import DropZone from './components/DropZone';
 import SettingsPanel from './components/SettingsPanel';
 import ImageItem from './components/ImageItem';
-import { compressImage } from './utils/compression';
+import { processImage } from './utils/processor';
 import { formatFileSize, calculateSavings } from './utils/formatters';
 import { downloadFile } from './utils/download';
-import { CompressedImage, CompressionStatus, CompressionSettings } from './types';
+import { CompressedImage, CompressionStatus, ProcessingSettings, Language } from './types';
+import { t } from './utils/translations';
 
-// Simple ID generator to avoid 'uuid' dependency issues during build
+// Simple ID generator
 const generateId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -20,12 +21,19 @@ const generateId = () => {
 
 const App: React.FC = () => {
   const [images, setImages] = useState<CompressedImage[]>([]);
-  const [isCompressing, setIsCompressing] = useState(false);
-  const [settings, setSettings] = useState<CompressionSettings>({
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [lang, setLang] = useState<Language>('zh'); // Default to Chinese
+  
+  const [settings, setSettings] = useState<ProcessingSettings>({
+    mode: 'compress',
+    // Compression Defaults
     maxSizeMB: 2,
     useWebWorker: true,
     initialQuality: 0.8,
-    fileType: undefined, // undefined = Keep Original
+    fileType: undefined,
+    // BG Removal Defaults
+    removeBgFormat: 'image/png',
+    compressResult: false,
   });
 
   // Derived stats
@@ -55,10 +63,9 @@ const App: React.FC = () => {
     const processQueue = async () => {
       const pendingImage = images.find(img => img.status === CompressionStatus.PENDING);
       
-      // Safety check: if no pending image or already compressing, stop.
       if (!pendingImage) return;
 
-      setIsCompressing(true);
+      setIsProcessing(true);
 
       // Mark as processing
       setImages(prev => prev.map(img => 
@@ -66,14 +73,15 @@ const App: React.FC = () => {
       ));
 
       try {
-        const compressedFile = await compressImage(pendingImage.originalFile, settings);
+        const resultBlob = await processImage(pendingImage.originalFile, settings);
         
         setImages(prev => prev.map(img => 
           img.id === pendingImage.id ? {
             ...img,
             status: CompressionStatus.COMPLETED,
-            compressedBlob: compressedFile,
-            compressedSize: compressedFile.size
+            compressedBlob: resultBlob,
+            compressedSize: resultBlob.size,
+            previewUrl: URL.createObjectURL(resultBlob) // Update preview to result
           } : img
         ));
       } catch (error) {
@@ -81,19 +89,18 @@ const App: React.FC = () => {
           img.id === pendingImage.id ? {
             ...img,
             status: CompressionStatus.ERROR,
-            error: 'Failed to compress'
+            error: 'Failed to process'
           } : img
         ));
       } finally {
-         // Critical: Always release the lock so the effect can re-run for the next item.
-         setIsCompressing(false);
+         setIsProcessing(false);
       }
     };
 
-    if (hasPending && !isCompressing) {
+    if (hasPending && !isProcessing) {
        processQueue();
     }
-  }, [images, settings, isCompressing, hasPending]);
+  }, [images, settings, isProcessing, hasPending]);
 
 
   const handleRemove = (id: string) => {
@@ -107,51 +114,56 @@ const App: React.FC = () => {
   const handleClearAll = () => {
     images.forEach(img => URL.revokeObjectURL(img.previewUrl));
     setImages([]);
-    setIsCompressing(false);
+    setIsProcessing(false);
   };
 
   const handleDownloadAll = async () => {
     if (completedImages.length === 0) return;
 
+    // Helper to get extension
+    const getExt = (originalName: string) => {
+        const dotIndex = originalName.lastIndexOf('.');
+        const nameWithoutExt = dotIndex !== -1 ? originalName.slice(0, dotIndex) : originalName;
+        
+        let ext = dotIndex !== -1 ? originalName.slice(dotIndex) : '';
+        
+        // Logic for extension based on settings/mode
+        if (settings.mode === 'compress') {
+            if (settings.fileType === 'image/webp') ext = '.webp';
+            if (settings.fileType === 'image/jpeg') ext = '.jpg';
+            if (settings.fileType === 'image/png') ext = '.png';
+        } else {
+            // Remove BG mode
+            if (settings.removeBgFormat === 'image/jpeg') ext = '.jpg';
+            else ext = '.png';
+        }
+        return { name: nameWithoutExt, ext };
+    };
+    
+    const suffix = settings.mode === 'remove-bg' ? '_cutout' : '_opt';
+
     if (completedImages.length === 1) {
       // Single file download
       const img = completedImages[0];
       if (img.compressedBlob) {
-        // Determine extension
-        const originalName = img.originalFile.name;
-        const dotIndex = originalName.lastIndexOf('.');
-        const nameWithoutExt = dotIndex !== -1 ? originalName.slice(0, dotIndex) : originalName;
-        
-        // If converted, we might need new extension
-        let ext = originalName.slice(dotIndex);
-        if (settings.fileType === 'image/webp') ext = '.webp';
-        if (settings.fileType === 'image/jpeg') ext = '.jpg';
-        if (settings.fileType === 'image/png') ext = '.png';
-
-        downloadFile(img.compressedBlob, `${nameWithoutExt}_optimized${ext}`);
+        const { name, ext } = getExt(img.originalFile.name);
+        downloadFile(img.compressedBlob, `${name}${suffix}${ext}`);
       }
     } else {
       // Zip download
       const zip = new JSZip();
-      const folder = zip.folder("optimized_images");
+      const folderName = settings.mode === 'remove-bg' ? "cutout_images" : "optimized_images";
+      const folder = zip.folder(folderName);
       
       completedImages.forEach(img => {
         if (img.compressedBlob) {
-            const originalName = img.originalFile.name;
-            const dotIndex = originalName.lastIndexOf('.');
-            const nameWithoutExt = dotIndex !== -1 ? originalName.slice(0, dotIndex) : originalName;
-            
-            let ext = originalName.slice(dotIndex);
-            if (settings.fileType === 'image/webp') ext = '.webp';
-            if (settings.fileType === 'image/jpeg') ext = '.jpg';
-            if (settings.fileType === 'image/png') ext = '.png';
-            
-            folder?.file(`${nameWithoutExt}_optimized${ext}`, img.compressedBlob);
+            const { name, ext } = getExt(img.originalFile.name);
+            folder?.file(`${name}${suffix}${ext}`, img.compressedBlob);
         }
       });
 
       const content = await zip.generateAsync({ type: "blob" });
-      downloadFile(content as Blob, "images_optimized.zip");
+      downloadFile(content as Blob, `${folderName}.zip`);
     }
   };
 
@@ -162,17 +174,17 @@ const App: React.FC = () => {
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
-              <Zap size={20} className="text-white" />
+            <div className={`p-2 rounded-lg shadow-lg transition-colors ${settings.mode === 'remove-bg' ? 'bg-gradient-to-br from-purple-600 to-pink-600 shadow-purple-500/20' : 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-blue-500/20'}`}>
+              {settings.mode === 'remove-bg' ? <Scissors size={20} className="text-white" /> : <Zap size={20} className="text-white" />}
             </div>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              OptiPress
+              {t(lang, 'appTitle')}
             </h1>
           </div>
           <div className="flex items-center gap-4">
-             {completedImages.length > 0 && (
+             {completedImages.length > 0 && settings.mode === 'compress' && (
                 <div className="hidden sm:flex flex-col items-end mr-4">
-                    <span className="text-xs text-slate-400">Total Saved</span>
+                    <span className="text-xs text-slate-400">{t(lang, 'totalSaved')}</span>
                     <span className="text-sm font-bold text-green-400">{totalSavings} ({formatFileSize(totalOriginalSize - totalCompressedSize)})</span>
                 </div>
              )}
@@ -187,11 +199,13 @@ const App: React.FC = () => {
             settings={settings} 
             onSettingsChange={setSettings} 
             disabled={images.length > 0} 
+            lang={lang}
+            setLang={setLang}
         />
 
         {/* Upload Area */}
         <div className="mb-8">
-          <DropZone onFilesAdded={handleFilesAdded} isProcessing={isCompressing} />
+          <DropZone onFilesAdded={handleFilesAdded} isProcessing={isProcessing} lang={lang} />
         </div>
 
         {/* Action Bar (Only visible if files exist) */}
@@ -199,9 +213,9 @@ const App: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
              <div className="flex items-center gap-2 text-slate-300">
                 <span className="font-medium text-white">{images.length}</span>
-                <span>images</span>
+                <span>{t(lang, 'files')}</span>
                 <span className="w-1 h-1 bg-slate-600 rounded-full mx-2"></span>
-                <span>{completedImages.length} done</span>
+                <span>{completedImages.length} {t(lang, 'done')}</span>
              </div>
              
              <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -210,7 +224,7 @@ const App: React.FC = () => {
                   className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
                 >
                   <Trash2 size={16} />
-                  Clear All
+                  {t(lang, 'clearAll')}
                 </button>
                 
                 <button 
@@ -218,12 +232,12 @@ const App: React.FC = () => {
                   disabled={completedImages.length === 0}
                   className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-lg ${
                     completedImages.length > 0 
-                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20' 
+                    ? settings.mode === 'remove-bg' ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
                     : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   }`}
                 >
                   <Download size={18} />
-                  {completedImages.length > 1 ? 'Download ZIP' : 'Download'}
+                  {completedImages.length > 1 ? t(lang, 'downloadZip') : t(lang, 'download')}
                 </button>
              </div>
           </div>
@@ -232,14 +246,14 @@ const App: React.FC = () => {
         {/* File List */}
         <div className="space-y-3">
           {images.map((img) => (
-            <ImageItem key={img.id} item={img} onRemove={handleRemove} />
+            <ImageItem key={img.id} item={img} onRemove={handleRemove} lang={lang} mode={settings.mode} />
           ))}
         </div>
 
         {/* Empty State Hint */}
         {images.length === 0 && (
             <div className="text-center mt-12 opacity-0 animate-[fadeIn_0.5s_ease-in_forwards]" style={{animationDelay: '0.2s'}}>
-                <p className="text-slate-600">Ready to optimize your assets.</p>
+                <p className="text-slate-600">{t(lang, 'ready')}</p>
             </div>
         )}
 

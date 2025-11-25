@@ -21,3 +21,14 @@ declare module 'jszip' {
     generateAsync(options: { type: "blob" | "base64" | "uint8array" | "string" }): Promise<Blob | string | Uint8Array>;
   }
 }
+
+declare module '@imgly/background-removal' {
+  export interface Config {
+    publicPath?: string;
+    debug?: boolean;
+    device?: 'cpu' | 'gpu';
+    proxyToWorker?: boolean;
+    model?: 'small' | 'medium';
+  }
+  export function removeBackground(image: File | Blob | string, config?: Config): Promise<Blob>;
+}

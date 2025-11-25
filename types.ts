@@ -5,6 +5,9 @@ export enum CompressionStatus {
   ERROR = 'ERROR',
 }
 
+export type AppMode = 'compress' | 'remove-bg';
+export type Language = 'en' | 'zh';
+
 export interface CompressedImage {
   id: string;
   originalFile: File;
@@ -19,8 +22,17 @@ export interface CompressedImage {
 
 export interface CompressionSettings {
   maxSizeMB: number;
-  maxWidthOrHeight?: number; // Optional, usually undefined to keep dimensions
+  maxWidthOrHeight?: number;
   useWebWorker: boolean;
-  initialQuality: number; // 0 to 1
-  fileType?: string; // e.g., 'image/webp'
+  initialQuality: number;
+  fileType?: string;
+}
+
+export interface ProcessingSettings extends CompressionSettings {
+  // Common
+  mode: AppMode;
+  
+  // Background Removal Settings
+  removeBgFormat: 'image/png' | 'image/jpeg'; // PNG (transparent) or JPG (white bg)
+  compressResult: boolean; // Whether to compress after removing bg
 }

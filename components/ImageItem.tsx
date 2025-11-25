@@ -1,14 +1,16 @@
 import React from 'react';
-import { CheckCircle2, XCircle, Loader2, FileImage, ArrowRight, Trash2 } from 'lucide-react';
-import { CompressedImage, CompressionStatus } from '../types';
+import { CheckCircle2, XCircle, Loader2, ArrowRight, Trash2 } from 'lucide-react';
+import { CompressedImage, CompressionStatus, Language, AppMode } from '../types';
 import { formatFileSize, calculateSavings } from '../utils/formatters';
 
 interface ImageItemProps {
   item: CompressedImage;
   onRemove: (id: string) => void;
+  lang: Language;
+  mode: AppMode;
 }
 
-const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove }) => {
+const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove, lang, mode }) => {
   return (
     <div className="group relative bg-slate-800 border border-slate-700 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-center gap-4 transition-all hover:bg-slate-750 hover:border-slate-600">
       
@@ -51,8 +53,8 @@ const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove }) => {
       {/* Status & Action */}
       <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
         
-        {/* Savings Pill */}
-        {item.status === CompressionStatus.COMPLETED && (
+        {/* Savings Pill (Only in Compress Mode or if size reduced) */}
+        {item.status === CompressionStatus.COMPLETED && (item.originalSize > item.compressedSize) && (
           <div className="flex items-center gap-1.5 bg-green-500/10 text-green-400 px-2 py-1 rounded-full border border-green-500/20">
              <span className="text-xs font-bold">-{calculateSavings(item.originalSize, item.compressedSize)}</span>
           </div>
@@ -64,7 +66,7 @@ const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove }) => {
           {item.status === CompressionStatus.ERROR && <XCircle size={20} className="text-red-500" />}
           {item.status === CompressionStatus.PROCESSING && (
              <div className="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 animate-pulse w-full origin-left"></div>
+                <div className={`h-full animate-pulse w-full origin-left ${mode === 'remove-bg' ? 'bg-purple-500' : 'bg-blue-500'}`}></div>
              </div>
           )}
           {item.status === CompressionStatus.PENDING && <div className="w-2 h-2 rounded-full bg-slate-600" />}
