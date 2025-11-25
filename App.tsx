@@ -1,15 +1,23 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Download, RefreshCw, Trash2, Zap } from 'lucide-react';
 import JSZip from 'jszip';
-import FileSaver from 'file-saver';
-import { v4 as uuidv4 } from 'uuid';
 
 import DropZone from './components/DropZone';
 import SettingsPanel from './components/SettingsPanel';
 import ImageItem from './components/ImageItem';
 import { compressImage } from './utils/compression';
 import { formatFileSize, calculateSavings } from './utils/formatters';
+import { downloadFile } from './utils/download';
 import { CompressedImage, CompressionStatus, CompressionSettings } from './types';
+
+// Simple ID generator to avoid 'uuid' dependency issues during build
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
 
 const App: React.FC = () => {
   const [images, setImages] = useState<CompressedImage[]>([]);
@@ -31,7 +39,7 @@ const App: React.FC = () => {
   // Handle adding files
   const handleFilesAdded = useCallback((files: File[]) => {
     const newImages: CompressedImage[] = files.map(file => ({
-      id: uuidv4(),
+      id: generateId(),
       originalFile: file,
       compressedBlob: null,
       status: CompressionStatus.PENDING,
@@ -47,6 +55,8 @@ const App: React.FC = () => {
   useEffect(() => {
     const processQueue = async () => {
       const pendingImage = images.find(img => img.status === CompressionStatus.PENDING);
+      
+      // Safety check: if no pending image or already compressing, stop.
       if (!pendingImage) return;
 
       setIsCompressing(true);
@@ -76,24 +86,12 @@ const App: React.FC = () => {
           } : img
         ));
       } finally {
-         // The effect will run again automatically if there are more pending items
-         // We verify if there are any still pending to keep isCompressing true, otherwise false
-         // Actually, better to check in the next cycle, but for smoothness:
-         setImages(currentImages => {
-             const hasMore = currentImages.some(img => img.status === CompressionStatus.PENDING);
-             if (!hasMore) setIsCompressing(false);
-             return currentImages;
-         });
+         // Critical: Always release the lock so the effect can re-run for the next item.
+         setIsCompressing(false);
       }
     };
 
     if (hasPending && !isCompressing) {
-       // Only trigger if we aren't already in a loop, but because we process one at a time via state updates,
-       // the useEffect dependency on 'images' will re-trigger this.
-       // However, we need to prevent parallel execution if the previous one hasn't finished its state update.
-       // The 'isCompressing' state helps, but with the specific logic above, 
-       // we simply let the effect trigger when a PENDING item exists and we aren't actively running a job on it.
-       // A simpler approach for sequential processing:
        processQueue();
     }
   }, [images, settings, isCompressing, hasPending]);
@@ -131,7 +129,7 @@ const App: React.FC = () => {
         if (settings.fileType === 'image/jpeg') ext = '.jpg';
         if (settings.fileType === 'image/png') ext = '.png';
 
-        FileSaver.saveAs(img.compressedBlob, `${nameWithoutExt}_optimized${ext}`);
+        downloadFile(img.compressedBlob, `${nameWithoutExt}_optimized${ext}`);
       }
     } else {
       // Zip download
@@ -149,15 +147,12 @@ const App: React.FC = () => {
             if (settings.fileType === 'image/jpeg') ext = '.jpg';
             if (settings.fileType === 'image/png') ext = '.png';
             
-            // Handle duplicate names if necessary (simplification: assume unique or append ID if collision? 
-            // For now, let's append index if needed, but uuid is internal. Let's use simple name.)
-            // Collision handling isn't robust here, but sufficient for basic tool.
             folder?.file(`${nameWithoutExt}_optimized${ext}`, img.compressedBlob);
         }
       });
 
       const content = await zip.generateAsync({ type: "blob" });
-      FileSaver.saveAs(content, "images_optimized.zip");
+      downloadFile(content, "images_optimized.zip");
     }
   };
 
@@ -192,9 +187,7 @@ const App: React.FC = () => {
         <SettingsPanel 
             settings={settings} 
             onSettingsChange={setSettings} 
-            disabled={images.length > 0} // Disable changing settings while files exist to maintain consistency, or allow live re-compress? 
-            // Simplifying: Disable if processing, but ideally we should allow changing for NEW files. 
-            // For this specific app structure, let's just disable if *processing*.
+            disabled={images.length > 0} 
         />
 
         {/* Upload Area */}
@@ -244,7 +237,7 @@ const App: React.FC = () => {
           ))}
         </div>
 
-        {/* Empty State Hint if needed */}
+        {/* Empty State Hint */}
         {images.length === 0 && (
             <div className="text-center mt-12 opacity-0 animate-[fadeIn_0.5s_ease-in_forwards]" style={{animationDelay: '0.2s'}}>
                 <p className="text-slate-600">Ready to optimize your assets.</p>

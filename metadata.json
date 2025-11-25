@@ -1,5 +1,5 @@
 {
-  "name": "OptiPress Image Compressor",
+  "name": "optipress-image-compressor",
   "description": "A high-performance batch image compression tool that reduces file size while maintaining visual quality and original dimensions. Features secure client-side processing and one-click ZIP download.",
   "requestFramePermissions": []
 }
