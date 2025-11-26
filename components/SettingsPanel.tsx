@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Settings, Info, Image as ImageIcon, Scissors, Globe, Maximize2 } from 'lucide-react';
+import { Settings, Info, Image as ImageIcon, Scissors, Globe, Maximize2, RefreshCw } from 'lucide-react';
 import { ProcessingSettings, Language, AppMode } from '../types';
 import { t } from '../utils/translations';
 
@@ -43,10 +44,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       
       {/* Top Bar: Mode Tabs & Language */}
       <div className="flex flex-col sm:flex-row border-b border-slate-700">
-        <div className="flex flex-1">
+        <div className="flex flex-1 overflow-x-auto">
           <button
             onClick={() => handleModeChange('compress')}
-            className={`flex-1 py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+            className={`flex-1 min-w-[100px] py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
               settings.mode === 'compress' 
                 ? 'bg-blue-600/10 text-blue-400 border-b-2 border-blue-500' 
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -54,11 +55,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             disabled={disabled}
           >
             <ImageIcon size={18} />
-            {t(lang, 'modeCompress')}
+            <span className="whitespace-nowrap">{t(lang, 'modeCompress')}</span>
           </button>
           <button
             onClick={() => handleModeChange('remove-bg')}
-            className={`flex-1 py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+            className={`flex-1 min-w-[100px] py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
               settings.mode === 'remove-bg' 
                 ? 'bg-purple-600/10 text-purple-400 border-b-2 border-purple-500' 
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -66,7 +67,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             disabled={disabled}
           >
             <Scissors size={18} />
-            {t(lang, 'modeRemoveBg')}
+            <span className="whitespace-nowrap">{t(lang, 'modeRemoveBg')}</span>
+          </button>
+          <button
+            onClick={() => handleModeChange('convert')}
+            className={`flex-1 min-w-[100px] py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+              settings.mode === 'convert' 
+                ? 'bg-orange-600/10 text-orange-400 border-b-2 border-orange-500' 
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+            disabled={disabled}
+          >
+            <RefreshCw size={18} />
+            <span className="whitespace-nowrap">{t(lang, 'modeConvert')}</span>
           </button>
         </div>
         
@@ -83,8 +96,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
       <div className="p-6">
         <div className="flex items-center gap-2 mb-4 text-white font-medium">
-          <Settings size={18} className={settings.mode === 'compress' ? "text-blue-400" : "text-purple-400"} />
-          <span>{settings.mode === 'compress' ? t(lang, 'modeCompress') : t(lang, 'modeRemoveBg')}</span>
+          {settings.mode === 'compress' && <Settings size={18} className="text-blue-400" />}
+          {settings.mode === 'remove-bg' && <Settings size={18} className="text-purple-400" />}
+          {settings.mode === 'convert' && <Settings size={18} className="text-orange-400" />}
+          
+          <span>
+            {settings.mode === 'compress' && t(lang, 'modeCompress')}
+            {settings.mode === 'remove-bg' && t(lang, 'modeRemoveBg')}
+            {settings.mode === 'convert' && t(lang, 'modeConvert')}
+          </span>
         </div>
 
         {/* Compression Mode Settings */}
@@ -224,6 +244,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </p>
               </div>
            </div>
+        )}
+        
+        {/* Convert Mode Settings */}
+        {settings.mode === 'convert' && (
+             <div className="max-w-md">
+                <label className="block text-sm text-slate-300 mb-2">{t(lang, 'targetFormat')}</label>
+                <select
+                  value={settings.convertFormat || 'image/jpeg'}
+                  onChange={(e) => onSettingsChange({...settings, convertFormat: e.target.value})}
+                  disabled={disabled}
+                  className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block p-2.5"
+                >
+                  <option value="image/jpeg">{t(lang, 'convertJpeg')}</option>
+                  <option value="image/png">{t(lang, 'convertPng')}</option>
+                  <option value="image/webp">{t(lang, 'convertWebp')}</option>
+                  <option value="application/pdf">{t(lang, 'convertPdf')}</option>
+                  <option value="image/x-icon">{t(lang, 'convertIco')}</option>
+                </select>
+                <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                   <Info size={12} className="mt-0.5 shrink-0" />
+                   {settings.convertFormat === 'application/pdf' ? t(lang, 'pdfHint') : settings.convertFormat === 'image/x-icon' ? t(lang, 'icoHint') : t(lang, 'convertHint')}
+                </p>
+             </div>
         )}
 
       </div>

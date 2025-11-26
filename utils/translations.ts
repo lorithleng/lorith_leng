@@ -1,3 +1,4 @@
+
 import { Language } from '../types';
 
 export const translations = {
@@ -7,12 +8,15 @@ export const translations = {
     totalSaved: 'Total Saved',
     modeCompress: 'Compression',
     modeRemoveBg: 'Remove BG',
+    modeConvert: 'Convert',
     qualityLevel: 'Quality Level',
     outputFormat: 'Output Format',
     keepOriginal: 'Keep Original',
     convertJpeg: 'Convert to JPEG',
     convertPng: 'Convert to PNG',
     convertWebp: 'Convert to WebP',
+    convertPdf: 'Convert to PDF',
+    convertIco: 'Convert to ICO',
     bgRemovalFormat: 'Result Format',
     transparentPng: 'Transparent PNG',
     whiteBgJpeg: 'White BG JPEG',
@@ -39,6 +43,11 @@ export const translations = {
     maxWidth: 'Max Width',
     maxHeight: 'Max Height',
     px: 'px',
+    // Convert
+    targetFormat: 'Target Format',
+    convertHint: 'Convert images to different formats.',
+    pdfHint: 'Embeds the image into a PDF page.',
+    icoHint: 'Generates a 256x256 icon suitable for favicons.',
   },
   zh: {
     appTitle: 'OptiPress',
@@ -46,12 +55,15 @@ export const translations = {
     totalSaved: '总计节省',
     modeCompress: '图片压缩',
     modeRemoveBg: '智能抠图',
+    modeConvert: '格式转换',
     qualityLevel: '压缩质量',
     outputFormat: '输出格式',
     keepOriginal: '保持原格式',
     convertJpeg: '转为 JPEG',
     convertPng: '转为 PNG',
     convertWebp: '转为 WebP',
+    convertPdf: '转为 PDF',
+    convertIco: '转为 ICO',
     bgRemovalFormat: '导出格式',
     transparentPng: '透明背景 PNG',
     whiteBgJpeg: '白底 JPEG',
@@ -78,6 +90,11 @@ export const translations = {
     maxWidth: '最大宽度',
     maxHeight: '最大高度',
     px: '像素',
+    // Convert
+    targetFormat: '目标格式',
+    convertHint: '将图片转换为不同的格式。',
+    pdfHint: '将图片嵌入到 PDF 页面中。',
+    icoHint: '生成适用于网站图标的 256x256 图标。',
   }
 };
 

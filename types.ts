@@ -1,3 +1,4 @@
+
 export enum CompressionStatus {
   PENDING = 'PENDING',
   PROCESSING = 'PROCESSING',
@@ -5,7 +6,7 @@ export enum CompressionStatus {
   ERROR = 'ERROR',
 }
 
-export type AppMode = 'compress' | 'remove-bg';
+export type AppMode = 'compress' | 'remove-bg' | 'convert';
 export type Language = 'en' | 'zh';
 
 export interface CompressedImage {
@@ -39,4 +40,7 @@ export interface ProcessingSettings extends CompressionSettings {
   // Background Removal Settings
   removeBgFormat: 'image/png' | 'image/jpeg'; // PNG (transparent) or JPG (white bg)
   compressResult: boolean; // Whether to compress after removing bg
+
+  // Format Conversion Settings
+  convertFormat?: string;
 }

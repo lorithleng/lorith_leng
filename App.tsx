@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Download, Trash2, Zap, Scissors } from 'lucide-react';
+import { Download, Trash2, Zap, Scissors, RefreshCw } from 'lucide-react';
 import JSZip from 'jszip';
 
 import DropZone from './components/DropZone';
@@ -38,6 +39,8 @@ const App: React.FC = () => {
     // BG Removal Defaults
     removeBgFormat: 'image/png',
     compressResult: false,
+    // Convert Defaults
+    convertFormat: 'image/jpeg',
   });
 
   // Derived stats
@@ -99,6 +102,7 @@ const App: React.FC = () => {
           } : img
         ));
       } catch (error) {
+        console.error(error);
         setImages(prev => prev.map(img => 
           img.id === pendingImage.id ? {
             ...img,
@@ -141,20 +145,26 @@ const App: React.FC = () => {
         
         let ext = dotIndex !== -1 ? originalName.slice(dotIndex) : '';
         
-        // Logic for extension based on settings/mode
         if (settings.mode === 'compress') {
             if (settings.fileType === 'image/webp') ext = '.webp';
             if (settings.fileType === 'image/jpeg') ext = '.jpg';
             if (settings.fileType === 'image/png') ext = '.png';
-        } else {
-            // Remove BG mode
+        } else if (settings.mode === 'remove-bg') {
             if (settings.removeBgFormat === 'image/jpeg') ext = '.jpg';
             else ext = '.png';
+        } else if (settings.mode === 'convert') {
+            if (settings.convertFormat === 'image/jpeg') ext = '.jpg';
+            else if (settings.convertFormat === 'image/png') ext = '.png';
+            else if (settings.convertFormat === 'image/webp') ext = '.webp';
+            else if (settings.convertFormat === 'application/pdf') ext = '.pdf';
+            else if (settings.convertFormat === 'image/x-icon') ext = '.ico';
         }
         return { name: nameWithoutExt, ext };
     };
     
-    const suffix = settings.mode === 'remove-bg' ? '_cutout' : '_opt';
+    let suffix = '_opt';
+    if (settings.mode === 'remove-bg') suffix = '_cutout';
+    if (settings.mode === 'convert') suffix = '_converted';
 
     if (completedImages.length === 1) {
       // Single file download
@@ -166,7 +176,10 @@ const App: React.FC = () => {
     } else {
       // Zip download
       const zip = new JSZip();
-      const folderName = settings.mode === 'remove-bg' ? "cutout_images" : "optimized_images";
+      let folderName = "optimized_images";
+      if (settings.mode === 'remove-bg') folderName = "cutout_images";
+      if (settings.mode === 'convert') folderName = "converted_images";
+
       const folder = zip.folder(folderName);
       
       completedImages.forEach(img => {
@@ -181,6 +194,14 @@ const App: React.FC = () => {
     }
   };
 
+  const getThemeColor = () => {
+    if (settings.mode === 'remove-bg') return 'purple';
+    if (settings.mode === 'convert') return 'orange';
+    return 'blue';
+  };
+
+  const themeColor = getThemeColor();
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500/30">
       
@@ -188,8 +209,14 @@ const App: React.FC = () => {
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg shadow-lg transition-colors ${settings.mode === 'remove-bg' ? 'bg-gradient-to-br from-purple-600 to-pink-600 shadow-purple-500/20' : 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-blue-500/20'}`}>
-              {settings.mode === 'remove-bg' ? <Scissors size={20} className="text-white" /> : <Zap size={20} className="text-white" />}
+            <div className={`p-2 rounded-lg shadow-lg transition-colors ${
+              settings.mode === 'remove-bg' ? 'bg-gradient-to-br from-purple-600 to-pink-600 shadow-purple-500/20' : 
+              settings.mode === 'convert' ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/20' :
+              'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-blue-500/20'
+            }`}>
+              {settings.mode === 'remove-bg' ? <Scissors size={20} className="text-white" /> : 
+               settings.mode === 'convert' ? <RefreshCw size={20} className="text-white" /> :
+               <Zap size={20} className="text-white" />}
             </div>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
               {t(lang, 'appTitle')}
@@ -246,7 +273,11 @@ const App: React.FC = () => {
                   disabled={completedImages.length === 0}
                   className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-lg ${
                     completedImages.length > 0 
-                    ? settings.mode === 'remove-bg' ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
+                    ? settings.mode === 'remove-bg' 
+                      ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20' 
+                      : settings.mode === 'convert'
+                        ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
+                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
                     : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   }`}
                 >
@@ -262,11 +293,9 @@ const App: React.FC = () => {
           <div className="mb-6 bg-slate-900/50 rounded-xl p-4 border border-slate-800 backdrop-blur-sm">
              <div className="flex justify-between text-xs text-slate-300 mb-2 font-medium">
                <div className="flex items-center gap-2">
-                 {settings.mode === 'remove-bg' ? (
-                   <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"/>
-                 ) : (
-                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"/>
-                 )}
+                 <span className={`w-2 h-2 rounded-full animate-pulse ${
+                    settings.mode === 'remove-bg' ? 'bg-purple-500' : settings.mode === 'convert' ? 'bg-orange-500' : 'bg-blue-500'
+                 }`}/>
                  <span>{t(lang, 'processing')}</span>
                </div>
                <span>{processedCount}/{images.length} ({progressPercentage}%)</span>
@@ -274,7 +303,7 @@ const App: React.FC = () => {
              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                 <div 
                    className={`h-full transition-all duration-300 ease-out ${
-                      settings.mode === 'remove-bg' ? 'bg-purple-500' : 'bg-blue-500'
+                      settings.mode === 'remove-bg' ? 'bg-purple-500' : settings.mode === 'convert' ? 'bg-orange-500' : 'bg-blue-500'
                    }`}
                    style={{ width: `${progressPercentage}%` }}
                 ></div>
