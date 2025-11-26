@@ -32,3 +32,5 @@ declare module '@imgly/background-removal' {
   }
   export function removeBackground(image: File | Blob | string, config?: Config): Promise<Blob>;
 }
+
+declare const pdfjsLib: any;

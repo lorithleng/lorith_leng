@@ -1,6 +1,7 @@
+
 import React from 'react';
-import { CheckCircle2, XCircle, Loader2, ArrowRight, Trash2 } from 'lucide-react';
-import { CompressedImage, CompressionStatus, Language, AppMode } from '../types';
+import { CheckCircle2, XCircle, Loader2, ArrowRight, Trash2, FileText } from 'lucide-react';
+import { CompressedImage, CompressionStatus, Language, AppMode, AppCategory } from '../types';
 import { formatFileSize, calculateSavings } from '../utils/formatters';
 
 interface ImageItemProps {
@@ -8,19 +9,26 @@ interface ImageItemProps {
   onRemove: (id: string) => void;
   lang: Language;
   mode: AppMode;
+  category: AppCategory;
 }
 
-const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove, lang, mode }) => {
+const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove, lang, mode, category }) => {
+  const isPdf = item.originalFile.type === 'application/pdf';
+
   return (
     <div className="group relative bg-slate-800 border border-slate-700 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-center gap-4 transition-all hover:bg-slate-750 hover:border-slate-600">
       
       {/* Thumbnail */}
-      <div className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden bg-slate-900 border border-slate-700">
-        <img 
-          src={item.previewUrl} 
-          alt="preview" 
-          className="w-full h-full object-cover" 
-        />
+      <div className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden bg-slate-900 border border-slate-700 flex items-center justify-center">
+        {isPdf ? (
+            <FileText size={32} className="text-slate-500" />
+        ) : (
+            <img 
+            src={item.previewUrl} 
+            alt="preview" 
+            className="w-full h-full object-cover" 
+            />
+        )}
         {item.status === CompressionStatus.PROCESSING && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <Loader2 size={20} className="text-white animate-spin" />
@@ -53,7 +61,7 @@ const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove, lang, mode }) => 
       {/* Status & Action */}
       <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
         
-        {/* Savings Pill (Only in Compress Mode or if size reduced) */}
+        {/* Savings Pill (Only in Compress/Pdf Mode or if size reduced) */}
         {item.status === CompressionStatus.COMPLETED && (item.originalSize > item.compressedSize) && (
           <div className="flex items-center gap-1.5 bg-green-500/10 text-green-400 px-2 py-1 rounded-full border border-green-500/20">
              <span className="text-xs font-bold">-{calculateSavings(item.originalSize, item.compressedSize)}</span>
@@ -66,7 +74,10 @@ const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove, lang, mode }) => 
           {item.status === CompressionStatus.ERROR && <XCircle size={20} className="text-red-500" />}
           {item.status === CompressionStatus.PROCESSING && (
              <div className="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                <div className={`h-full animate-pulse w-full origin-left ${mode === 'remove-bg' ? 'bg-purple-500' : 'bg-blue-500'}`}></div>
+                <div className={`h-full animate-pulse w-full origin-left ${
+                    category === 'pdf' ? 'bg-red-500' :
+                    mode === 'remove-bg' ? 'bg-purple-500' : 'bg-blue-500'
+                }`}></div>
              </div>
           )}
           {item.status === CompressionStatus.PENDING && <div className="w-2 h-2 rounded-full bg-slate-600" />}

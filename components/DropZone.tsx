@@ -1,16 +1,20 @@
+
 import React, { useCallback, useState } from 'react';
-import { Upload, ImagePlus } from 'lucide-react';
-import { Language } from '../types';
+import { Upload, ImagePlus, FileText } from 'lucide-react';
+import { Language, AppCategory } from '../types';
 import { t } from '../utils/translations';
 
 interface DropZoneProps {
   onFilesAdded: (files: File[]) => void;
   isProcessing: boolean;
   lang: Language;
+  category: AppCategory;
 }
 
-const DropZone: React.FC<DropZoneProps> = ({ onFilesAdded, isProcessing, lang }) => {
+const DropZone: React.FC<DropZoneProps> = ({ onFilesAdded, isProcessing, lang, category }) => {
   const [isDragging, setIsDragging] = useState(false);
+
+  const acceptType = category === 'pdf' ? 'application/pdf' : 'image/*';
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -28,27 +32,33 @@ const DropZone: React.FC<DropZoneProps> = ({ onFilesAdded, isProcessing, lang })
       setIsDragging(false);
       
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const imageFiles = (Array.from(e.dataTransfer.files) as File[]).filter((file) =>
-          file.type.startsWith('image/')
-        );
-        if (imageFiles.length > 0) {
-          onFilesAdded(imageFiles);
+        const files = Array.from(e.dataTransfer.files) as File[];
+        
+        const validFiles = files.filter(file => {
+             if (category === 'pdf') return file.type === 'application/pdf';
+             return file.type.startsWith('image/');
+        });
+
+        if (validFiles.length > 0) {
+          onFilesAdded(validFiles);
         }
       }
     },
-    [onFilesAdded]
+    [onFilesAdded, category]
   );
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files.length > 0) {
-        const imageFiles = (Array.from(e.target.files) as File[]).filter((file) =>
-          file.type.startsWith('image/')
-        );
-        onFilesAdded(imageFiles);
+        const files = Array.from(e.target.files) as File[];
+        const validFiles = files.filter(file => {
+             if (category === 'pdf') return file.type === 'application/pdf';
+             return file.type.startsWith('image/');
+        });
+        onFilesAdded(validFiles);
       }
     },
-    [onFilesAdded]
+    [onFilesAdded, category]
   );
 
   return (
@@ -67,19 +77,19 @@ const DropZone: React.FC<DropZoneProps> = ({ onFilesAdded, isProcessing, lang })
         id="fileInput"
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
         multiple
-        accept="image/*"
+        accept={acceptType}
         onChange={handleFileInput}
         disabled={isProcessing}
       />
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
         <div className={`p-4 rounded-full mb-4 ${isDragging ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700/50 text-slate-400'}`}>
-            {isDragging ? <Upload size={32} /> : <ImagePlus size={32} />}
+            {isDragging ? <Upload size={32} /> : category === 'pdf' ? <FileText size={32} /> : <ImagePlus size={32} />}
         </div>
         <h3 className="text-xl font-semibold text-white mb-2">
           {isDragging ? t(lang, 'dropActive') : t(lang, 'dropTitle')}
         </h3>
         <p className="text-slate-400 text-sm max-w-sm mx-auto">
-          {t(lang, 'dropSubtitle')}
+          {category === 'pdf' ? t(lang, 'dropSubtitlePdf') : t(lang, 'dropSubtitleImage')}
         </p>
         <button 
             type="button" 

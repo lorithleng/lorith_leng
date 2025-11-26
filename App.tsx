@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Download, Trash2, Zap, Scissors, RefreshCw } from 'lucide-react';
+import { Download, Trash2, Zap, Scissors, RefreshCw, FileText, Images } from 'lucide-react';
 import JSZip from 'jszip';
 
 import DropZone from './components/DropZone';
 import SettingsPanel from './components/SettingsPanel';
 import ImageItem from './components/ImageItem';
 import { processImage } from './utils/processor';
+import { processPdf } from './utils/pdfProcessor';
 import { formatFileSize, calculateSavings } from './utils/formatters';
 import { downloadFile } from './utils/download';
-import { CompressedImage, CompressionStatus, ProcessingSettings, Language } from './types';
+import { CompressedImage, CompressionStatus, ProcessingSettings, Language, AppCategory } from './types';
 import { t } from './utils/translations';
 
 // Simple ID generator
@@ -26,7 +27,10 @@ const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('zh'); // Default to Chinese
   
   const [settings, setSettings] = useState<ProcessingSettings>({
+    category: 'image',
     mode: 'compress',
+    pdfMode: 'compress',
+    
     // Compression Defaults
     maxSizeMB: 2,
     useWebWorker: true,
@@ -41,7 +45,22 @@ const App: React.FC = () => {
     compressResult: false,
     // Convert Defaults
     convertFormat: 'image/jpeg',
+    // PDF Defaults
+    pdfQuality: 0.8,
+    pdfToImageFormat: 'image/jpeg',
   });
+
+  const handleCategoryChange = (cat: AppCategory) => {
+      // Clear files when switching context to avoid mixing types incorrectly
+      if (images.length > 0) {
+          if (confirm(lang === 'en' ? "Switching categories will clear current list. Continue?" : "切换分类将清空当前列表，是否继续？")) {
+             handleClearAll();
+             setSettings(prev => ({ ...prev, category: cat }));
+          }
+      } else {
+          setSettings(prev => ({ ...prev, category: cat }));
+      }
+  };
 
   // Derived stats
   const completedImages = useMemo(() => images.filter(img => img.status === CompressionStatus.COMPLETED), [images]);
@@ -69,7 +88,7 @@ const App: React.FC = () => {
       status: CompressionStatus.PENDING,
       originalSize: file.size,
       compressedSize: 0,
-      previewUrl: URL.createObjectURL(file),
+      previewUrl: file.type === 'application/pdf' ? '' : URL.createObjectURL(file),
       progress: 0,
     }));
     setImages(prev => [...prev, ...newImages]);
@@ -90,15 +109,25 @@ const App: React.FC = () => {
       ));
 
       try {
-        const resultBlob = await processImage(pendingImage.originalFile, settings);
+        let resultBlob: Blob;
         
+        if (settings.category === 'pdf') {
+             resultBlob = await processPdf(pendingImage.originalFile, settings);
+        } else {
+             resultBlob = await processImage(pendingImage.originalFile, settings);
+        }
+        
+        // Check if result is a ZIP (for multi-page PDF to Image)
+        const isZip = resultBlob.type === 'application/zip' || (resultBlob.size > 0 && settings.category === 'pdf' && settings.pdfMode === 'convert-to-image');
+
         setImages(prev => prev.map(img => 
           img.id === pendingImage.id ? {
             ...img,
             status: CompressionStatus.COMPLETED,
             compressedBlob: resultBlob,
             compressedSize: resultBlob.size,
-            previewUrl: URL.createObjectURL(resultBlob) // Update preview to result
+            // Update preview only if it's an image
+            previewUrl: settings.category !== 'pdf' && !isZip ? URL.createObjectURL(resultBlob) : ''
           } : img
         ));
       } catch (error) {
@@ -130,7 +159,7 @@ const App: React.FC = () => {
   };
 
   const handleClearAll = () => {
-    images.forEach(img => URL.revokeObjectURL(img.previewUrl));
+    images.forEach(img => { if(img.previewUrl) URL.revokeObjectURL(img.previewUrl); });
     setImages([]);
     setIsProcessing(false);
   };
@@ -139,52 +168,72 @@ const App: React.FC = () => {
     if (completedImages.length === 0) return;
 
     // Helper to get extension
-    const getExt = (originalName: string) => {
+    const getExt = (originalName: string, blob?: Blob) => {
         const dotIndex = originalName.lastIndexOf('.');
         const nameWithoutExt = dotIndex !== -1 ? originalName.slice(0, dotIndex) : originalName;
         
+        // Logic to override extension based on mode
         let ext = dotIndex !== -1 ? originalName.slice(dotIndex) : '';
-        
-        if (settings.mode === 'compress') {
-            if (settings.fileType === 'image/webp') ext = '.webp';
-            if (settings.fileType === 'image/jpeg') ext = '.jpg';
-            if (settings.fileType === 'image/png') ext = '.png';
-        } else if (settings.mode === 'remove-bg') {
-            if (settings.removeBgFormat === 'image/jpeg') ext = '.jpg';
-            else ext = '.png';
-        } else if (settings.mode === 'convert') {
-            if (settings.convertFormat === 'image/jpeg') ext = '.jpg';
-            else if (settings.convertFormat === 'image/png') ext = '.png';
-            else if (settings.convertFormat === 'image/webp') ext = '.webp';
-            else if (settings.convertFormat === 'application/pdf') ext = '.pdf';
-            else if (settings.convertFormat === 'image/x-icon') ext = '.ico';
+
+        // If blob is explicitly a zip, use .zip
+        if (blob && blob.type === 'application/zip') {
+            return { name: nameWithoutExt, ext: '.zip' };
+        }
+
+        if (settings.category === 'pdf') {
+             if (settings.pdfMode === 'compress') ext = '.pdf';
+             else if (settings.pdfMode === 'convert-to-image') {
+                 // Single page PDF converted to 1 image
+                 if (settings.pdfToImageFormat === 'image/jpeg') ext = '.jpg';
+                 else ext = '.png';
+             }
+        } else {
+            if (settings.mode === 'compress') {
+                if (settings.fileType === 'image/webp') ext = '.webp';
+                if (settings.fileType === 'image/jpeg') ext = '.jpg';
+                if (settings.fileType === 'image/png') ext = '.png';
+            } else if (settings.mode === 'remove-bg') {
+                if (settings.removeBgFormat === 'image/jpeg') ext = '.jpg';
+                else ext = '.png';
+            } else if (settings.mode === 'convert') {
+                if (settings.convertFormat === 'image/jpeg') ext = '.jpg';
+                else if (settings.convertFormat === 'image/png') ext = '.png';
+                else if (settings.convertFormat === 'image/webp') ext = '.webp';
+                else if (settings.convertFormat === 'application/pdf') ext = '.pdf';
+                else if (settings.convertFormat === 'image/x-icon') ext = '.ico';
+            }
         }
         return { name: nameWithoutExt, ext };
     };
     
     let suffix = '_opt';
-    if (settings.mode === 'remove-bg') suffix = '_cutout';
-    if (settings.mode === 'convert') suffix = '_converted';
+    if (settings.category === 'pdf') {
+        if (settings.pdfMode === 'compress') suffix = '_min';
+        else suffix = '_images';
+    }
+    else if (settings.mode === 'remove-bg') suffix = '_cutout';
+    else if (settings.mode === 'convert') suffix = '_converted';
 
     if (completedImages.length === 1) {
       // Single file download
       const img = completedImages[0];
       if (img.compressedBlob) {
-        const { name, ext } = getExt(img.originalFile.name);
+        const { name, ext } = getExt(img.originalFile.name, img.compressedBlob);
         downloadFile(img.compressedBlob, `${name}${suffix}${ext}`);
       }
     } else {
       // Zip download
       const zip = new JSZip();
       let folderName = "optimized_images";
-      if (settings.mode === 'remove-bg') folderName = "cutout_images";
-      if (settings.mode === 'convert') folderName = "converted_images";
+      if (settings.category === 'pdf') folderName = "optimized_pdfs";
+      else if (settings.mode === 'remove-bg') folderName = "cutout_images";
+      else if (settings.mode === 'convert') folderName = "converted_images";
 
       const folder = zip.folder(folderName);
       
       completedImages.forEach(img => {
         if (img.compressedBlob) {
-            const { name, ext } = getExt(img.originalFile.name);
+            const { name, ext } = getExt(img.originalFile.name, img.compressedBlob);
             folder?.file(`${name}${suffix}${ext}`, img.compressedBlob);
         }
       });
@@ -194,13 +243,9 @@ const App: React.FC = () => {
     }
   };
 
-  const getThemeColor = () => {
-    if (settings.mode === 'remove-bg') return 'purple';
-    if (settings.mode === 'convert') return 'orange';
-    return 'blue';
-  };
-
-  const themeColor = getThemeColor();
+  const themeColor = settings.category === 'pdf' ? 'red' :
+                     settings.mode === 'remove-bg' ? 'purple' :
+                     settings.mode === 'convert' ? 'orange' : 'blue';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500/30">
@@ -210,11 +255,13 @@ const App: React.FC = () => {
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg shadow-lg transition-colors ${
+              settings.category === 'pdf' ? 'bg-gradient-to-br from-red-600 to-pink-600 shadow-red-500/20' :
               settings.mode === 'remove-bg' ? 'bg-gradient-to-br from-purple-600 to-pink-600 shadow-purple-500/20' : 
               settings.mode === 'convert' ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/20' :
               'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-blue-500/20'
             }`}>
-              {settings.mode === 'remove-bg' ? <Scissors size={20} className="text-white" /> : 
+              {settings.category === 'pdf' ? <FileText size={20} className="text-white" /> :
+               settings.mode === 'remove-bg' ? <Scissors size={20} className="text-white" /> : 
                settings.mode === 'convert' ? <RefreshCw size={20} className="text-white" /> :
                <Zap size={20} className="text-white" />}
             </div>
@@ -223,7 +270,7 @@ const App: React.FC = () => {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-             {completedImages.length > 0 && settings.mode === 'compress' && (
+             {completedImages.length > 0 && settings.mode === 'compress' && settings.category === 'image' && (
                 <div className="hidden sm:flex flex-col items-end mr-4">
                     <span className="text-xs text-slate-400">{t(lang, 'totalSaved')}</span>
                     <span className="text-sm font-bold text-green-400">{totalSavings} ({formatFileSize(totalOriginalSize - totalCompressedSize)})</span>
@@ -242,11 +289,17 @@ const App: React.FC = () => {
             disabled={images.length > 0} 
             lang={lang}
             setLang={setLang}
+            onCategoryChange={handleCategoryChange}
         />
 
         {/* Upload Area */}
         <div className="mb-8">
-          <DropZone onFilesAdded={handleFilesAdded} isProcessing={isProcessing} lang={lang} />
+          <DropZone 
+            onFilesAdded={handleFilesAdded} 
+            isProcessing={isProcessing} 
+            lang={lang}
+            category={settings.category}
+          />
         </div>
 
         {/* Action Bar (Only visible if files exist) */}
@@ -273,11 +326,13 @@ const App: React.FC = () => {
                   disabled={completedImages.length === 0}
                   className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-lg ${
                     completedImages.length > 0 
-                    ? settings.mode === 'remove-bg' 
-                      ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20' 
-                      : settings.mode === 'convert'
-                        ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
-                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
+                    ? settings.category === 'pdf' 
+                      ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
+                      : settings.mode === 'remove-bg' 
+                        ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20' 
+                        : settings.mode === 'convert'
+                            ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
+                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
                     : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   }`}
                 >
@@ -294,6 +349,7 @@ const App: React.FC = () => {
              <div className="flex justify-between text-xs text-slate-300 mb-2 font-medium">
                <div className="flex items-center gap-2">
                  <span className={`w-2 h-2 rounded-full animate-pulse ${
+                    settings.category === 'pdf' ? 'bg-red-500' :
                     settings.mode === 'remove-bg' ? 'bg-purple-500' : settings.mode === 'convert' ? 'bg-orange-500' : 'bg-blue-500'
                  }`}/>
                  <span>{t(lang, 'processing')}</span>
@@ -303,6 +359,7 @@ const App: React.FC = () => {
              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                 <div 
                    className={`h-full transition-all duration-300 ease-out ${
+                      settings.category === 'pdf' ? 'bg-red-500' :
                       settings.mode === 'remove-bg' ? 'bg-purple-500' : settings.mode === 'convert' ? 'bg-orange-500' : 'bg-blue-500'
                    }`}
                    style={{ width: `${progressPercentage}%` }}
@@ -314,7 +371,14 @@ const App: React.FC = () => {
         {/* File List */}
         <div className="space-y-3">
           {images.map((img) => (
-            <ImageItem key={img.id} item={img} onRemove={handleRemove} lang={lang} mode={settings.mode} />
+            <ImageItem 
+                key={img.id} 
+                item={img} 
+                onRemove={handleRemove} 
+                lang={lang} 
+                mode={settings.mode}
+                category={settings.category}
+            />
           ))}
         </div>
 
