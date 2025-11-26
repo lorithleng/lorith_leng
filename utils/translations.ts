@@ -33,6 +33,12 @@ export const translations = {
     error: 'Error',
     files: 'files',
     done: 'done',
+    // Resize
+    resizeImages: 'Resize Images',
+    resizeHint: 'Scale down images larger than these dimensions',
+    maxWidth: 'Max Width',
+    maxHeight: 'Max Height',
+    px: 'px',
   },
   zh: {
     appTitle: 'OptiPress',
@@ -66,6 +72,12 @@ export const translations = {
     error: '失败',
     files: '个文件',
     done: '完成',
+    // Resize
+    resizeImages: '调整尺寸',
+    resizeHint: '将超过限制的图片按比例缩小',
+    maxWidth: '最大宽度',
+    maxHeight: '最大高度',
+    px: '像素',
   }
 };
 

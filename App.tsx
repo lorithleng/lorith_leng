@@ -31,6 +31,10 @@ const App: React.FC = () => {
     useWebWorker: true,
     initialQuality: 0.8,
     fileType: undefined,
+    // Resize Defaults
+    resize: false,
+    maxWidth: 1920,
+    maxHeight: 1080,
     // BG Removal Defaults
     removeBgFormat: 'image/png',
     compressResult: false,

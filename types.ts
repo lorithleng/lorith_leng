@@ -26,6 +26,10 @@ export interface CompressionSettings {
   useWebWorker: boolean;
   initialQuality: number;
   fileType?: string;
+  // Resizing options
+  resize: boolean;
+  maxWidth?: number;
+  maxHeight?: number;
 }
 
 export interface ProcessingSettings extends CompressionSettings {

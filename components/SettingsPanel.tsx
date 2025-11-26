@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Info, Image as ImageIcon, Scissors, Globe } from 'lucide-react';
+import { Settings, Info, Image as ImageIcon, Scissors, Globe, Maximize2 } from 'lucide-react';
 import { ProcessingSettings, Language, AppMode } from '../types';
 import { t } from '../utils/translations';
 
@@ -90,46 +90,102 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Compression Mode Settings */}
         {settings.mode === 'compress' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm text-slate-300">{t(lang, 'qualityLevel')}</label>
-                <span className="text-sm font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
-                  {Math.round(settings.initialQuality * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0.1"
-                max="1.0"
-                step="0.05"
-                value={settings.initialQuality}
-                onChange={handleQualityChange}
-                disabled={disabled}
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
-              <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
-                <Info size={12} className="mt-0.5 shrink-0" />
-                {t(lang, 'qualityHint')}
-              </p>
+            {/* Quality & Format */}
+            <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm text-slate-300">{t(lang, 'qualityLevel')}</label>
+                    <span className="text-sm font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                      {Math.round(settings.initialQuality * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.0"
+                    step="0.05"
+                    value={settings.initialQuality}
+                    onChange={handleQualityChange}
+                    disabled={disabled}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                  <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                    <Info size={12} className="mt-0.5 shrink-0" />
+                    {t(lang, 'qualityHint')}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-slate-300 mb-2">{t(lang, 'outputFormat')}</label>
+                  <select
+                    value={settings.fileType || 'original'}
+                    onChange={handleFormatChange}
+                    disabled={disabled}
+                    className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                  >
+                    <option value="original">{t(lang, 'keepOriginal')}</option>
+                    <option value="image/jpeg">{t(lang, 'convertJpeg')}</option>
+                    <option value="image/png">{t(lang, 'convertPng')}</option>
+                    <option value="image/webp">{t(lang, 'convertWebp')}</option>
+                  </select>
+                  <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                    <Info size={12} className="mt-0.5 shrink-0" />
+                    {t(lang, 'formatHint')}
+                  </p>
+                </div>
             </div>
 
-            <div>
-              <label className="block text-sm text-slate-300 mb-2">{t(lang, 'outputFormat')}</label>
-              <select
-                value={settings.fileType || 'original'}
-                onChange={handleFormatChange}
-                disabled={disabled}
-                className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-              >
-                <option value="original">{t(lang, 'keepOriginal')}</option>
-                <option value="image/jpeg">{t(lang, 'convertJpeg')}</option>
-                <option value="image/png">{t(lang, 'convertPng')}</option>
-                <option value="image/webp">{t(lang, 'convertWebp')}</option>
-              </select>
-              <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
-                <Info size={12} className="mt-0.5 shrink-0" />
-                {t(lang, 'formatHint')}
-              </p>
+            {/* Resize Settings */}
+            <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <Maximize2 size={16} className="text-slate-400" />
+                        <label className="text-sm text-slate-200 font-medium">{t(lang, 'resizeImages')}</label>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            className="sr-only peer"
+                            checked={settings.resize}
+                            onChange={(e) => onSettingsChange({...settings, resize: e.target.checked})}
+                            disabled={disabled}
+                        />
+                        <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                <div className={`grid grid-cols-2 gap-4 transition-opacity duration-200 ${settings.resize ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                   <div>
+                      <label className="block text-xs text-slate-400 mb-1.5">{t(lang, 'maxWidth')}</label>
+                      <div className="relative">
+                          <input 
+                             type="number"
+                             value={settings.maxWidth || ''}
+                             onChange={(e) => onSettingsChange({...settings, maxWidth: parseInt(e.target.value) || 0})}
+                             className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-md px-3 py-2 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                             placeholder="1920"
+                          />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-500">{t(lang, 'px')}</span>
+                      </div>
+                   </div>
+                   <div>
+                      <label className="block text-xs text-slate-400 mb-1.5">{t(lang, 'maxHeight')}</label>
+                      <div className="relative">
+                          <input 
+                             type="number"
+                             value={settings.maxHeight || ''}
+                             onChange={(e) => onSettingsChange({...settings, maxHeight: parseInt(e.target.value) || 0})}
+                             className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-md px-3 py-2 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                             placeholder="1080"
+                          />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-500">{t(lang, 'px')}</span>
+                      </div>
+                   </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-3 flex items-start gap-1">
+                   <Info size={12} className="mt-0.5 shrink-0" />
+                   {t(lang, 'resizeHint')}
+                </p>
             </div>
           </div>
         )}

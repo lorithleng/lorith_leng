@@ -16,13 +16,47 @@ export const processImage = async (file: File, settings: ProcessingSettings): Pr
 };
 
 const processCompression = async (file: File, settings: ProcessingSettings): Promise<File> => {
-  const options = {
+  const options: any = {
     maxSizeMB: settings.maxSizeMB || 2,
-    maxWidthOrHeight: settings.maxWidthOrHeight,
     useWebWorker: settings.useWebWorker,
     initialQuality: settings.initialQuality,
     fileType: settings.fileType,
   };
+
+  // Resizing logic
+  if (settings.resize && (settings.maxWidth || settings.maxHeight)) {
+     try {
+        const bmp = await createImageBitmap(file);
+        const originalWidth = bmp.width;
+        const originalHeight = bmp.height;
+        bmp.close();
+
+        let scale = 1;
+        
+        // Calculate scale for width
+        if (settings.maxWidth && originalWidth > settings.maxWidth) {
+           scale = Math.min(scale, settings.maxWidth / originalWidth);
+        }
+
+        // Calculate scale for height (and keep aspect ratio if both are set)
+        if (settings.maxHeight && originalHeight > settings.maxHeight) {
+           scale = Math.min(scale, settings.maxHeight / originalHeight);
+        }
+
+        // Apply scale if needed
+        if (scale < 1) {
+           const newWidth = originalWidth * scale;
+           const newHeight = originalHeight * scale;
+           
+           // browser-image-compression uses `maxWidthOrHeight` as the constraint for the longest edge.
+           // However, if we know specific target dimensions, we can trick it or just use the largest dimension 
+           // of the NEW target size to ensure it fits.
+           options.maxWidthOrHeight = Math.max(newWidth, newHeight);
+        }
+     } catch (e) {
+        console.warn("Could not calculate dimensions for resize, skipping resize step.", e);
+     }
+  }
 
   try {
     return await imageCompression(file, options);
@@ -58,7 +92,8 @@ const processBackgroundRemoval = async (file: File, settings: ProcessingSettings
         ...settings,
         fileType: settings.removeBgFormat, // Ensure we compress to the target format
         maxSizeMB: 2, // Default standard
-        initialQuality: 0.8
+        initialQuality: 0.8,
+        resize: false // Don't resize result of BG removal unless explicitly requested, but usually keep original logic here
       });
     }
 
