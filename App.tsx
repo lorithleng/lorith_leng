@@ -43,6 +43,16 @@ const App: React.FC = () => {
   const totalSavings = totalOriginalSize > 0 ? calculateSavings(totalOriginalSize, totalCompressedSize) : '0%';
   const hasPending = useMemo(() => images.some(img => img.status === CompressionStatus.PENDING), [images]);
 
+  // Progress stats
+  const processedCount = useMemo(() => images.filter(img => 
+    img.status === CompressionStatus.COMPLETED || img.status === CompressionStatus.ERROR
+  ).length, [images]);
+
+  const progressPercentage = useMemo(() => {
+    if (images.length === 0) return 0;
+    return Math.round((processedCount / images.length) * 100);
+  }, [images.length, processedCount]);
+
   // Handle adding files
   const handleFilesAdded = useCallback((files: File[]) => {
     const newImages: CompressedImage[] = files.map(file => ({
@@ -239,6 +249,31 @@ const App: React.FC = () => {
                   <Download size={18} />
                   {completedImages.length > 1 ? t(lang, 'downloadZip') : t(lang, 'download')}
                 </button>
+             </div>
+          </div>
+        )}
+
+        {/* Global Progress Bar */}
+        {isProcessing && images.length > 0 && (
+          <div className="mb-6 bg-slate-900/50 rounded-xl p-4 border border-slate-800 backdrop-blur-sm">
+             <div className="flex justify-between text-xs text-slate-300 mb-2 font-medium">
+               <div className="flex items-center gap-2">
+                 {settings.mode === 'remove-bg' ? (
+                   <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"/>
+                 ) : (
+                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"/>
+                 )}
+                 <span>{t(lang, 'processing')}</span>
+               </div>
+               <span>{processedCount}/{images.length} ({progressPercentage}%)</span>
+             </div>
+             <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div 
+                   className={`h-full transition-all duration-300 ease-out ${
+                      settings.mode === 'remove-bg' ? 'bg-purple-500' : 'bg-blue-500'
+                   }`}
+                   style={{ width: `${progressPercentage}%` }}
+                ></div>
              </div>
           </div>
         )}
