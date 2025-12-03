@@ -8,7 +8,7 @@ export enum CompressionStatus {
 
 export type AppCategory = 'image' | 'pdf';
 export type AppMode = 'compress' | 'remove-bg' | 'convert';
-export type PdfMode = 'compress' | 'convert-to-image';
+export type PdfMode = 'compress' | 'convert-to-image' | 'split' | 'unlock' | 'edit' | 'annotate';
 
 export type Language = 'en' | 'zh';
 
@@ -55,4 +55,10 @@ export interface ProcessingSettings extends CompressionSettings {
   // PDF Settings
   pdfQuality: number; // 0.1 - 1.0
   pdfToImageFormat: 'image/jpeg' | 'image/png';
+  
+  // PDF New Features
+  pdfSplitRange: string; // "1-5", "1,3,5"
+  pdfPassword?: string;
+  pdfRotation: 0 | 90 | 180 | 270;
+  pdfWatermarkText: string;
 }

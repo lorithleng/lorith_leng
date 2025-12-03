@@ -34,3 +34,4 @@ declare module '@imgly/background-removal' {
 }
 
 declare const pdfjsLib: any;
+declare const PDFLib: any;

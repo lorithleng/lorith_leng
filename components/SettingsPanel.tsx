@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Settings, Info, Image as ImageIcon, Scissors, Globe, Maximize2, RefreshCw, FileText, Minimize2, Images } from 'lucide-react';
+import { Settings, Info, Image as ImageIcon, Scissors, Globe, Maximize2, RefreshCw, FileText, Minimize2, Images, Split, Lock, Edit3, Type } from 'lucide-react';
 import { ProcessingSettings, Language, AppMode, AppCategory, PdfMode } from '../types';
 import { t } from '../utils/translations';
 
@@ -86,7 +86,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       
       {/* Mode Tabs */}
       <div className="flex flex-col sm:flex-row border-b border-slate-700">
-        <div className="flex flex-1 overflow-x-auto">
+        <div className="flex flex-1 overflow-x-auto scrollbar-hide">
           {settings.category === 'image' ? (
               <>
               <button
@@ -151,6 +151,54 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               >
                 <Images size={18} />
                 <span className="whitespace-nowrap">{t(lang, 'modePdfToImage')}</span>
+              </button>
+              <button
+                onClick={() => handlePdfModeChange('split')}
+                className={`flex-1 min-w-[80px] py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                  settings.pdfMode === 'split' 
+                    ? 'bg-green-600/10 text-green-400 border-b-2 border-green-500' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+                disabled={disabled}
+              >
+                <Split size={18} />
+                <span className="whitespace-nowrap">{t(lang, 'modePdfSplit')}</span>
+              </button>
+              <button
+                onClick={() => handlePdfModeChange('unlock')}
+                className={`flex-1 min-w-[80px] py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                  settings.pdfMode === 'unlock' 
+                    ? 'bg-yellow-600/10 text-yellow-400 border-b-2 border-yellow-500' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+                disabled={disabled}
+              >
+                <Lock size={18} />
+                <span className="whitespace-nowrap">{t(lang, 'modePdfUnlock')}</span>
+              </button>
+               <button
+                onClick={() => handlePdfModeChange('edit')}
+                className={`flex-1 min-w-[80px] py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                  settings.pdfMode === 'edit' 
+                    ? 'bg-indigo-600/10 text-indigo-400 border-b-2 border-indigo-500' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+                disabled={disabled}
+              >
+                <Edit3 size={18} />
+                <span className="whitespace-nowrap">{t(lang, 'modePdfEdit')}</span>
+              </button>
+              <button
+                onClick={() => handlePdfModeChange('annotate')}
+                className={`flex-1 min-w-[80px] py-4 flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                  settings.pdfMode === 'annotate' 
+                    ? 'bg-teal-600/10 text-teal-400 border-b-2 border-teal-500' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+                disabled={disabled}
+              >
+                <Type size={18} />
+                <span className="whitespace-nowrap">{t(lang, 'modePdfAnnotate')}</span>
               </button>
              </>
           )}
@@ -376,6 +424,81 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <Info size={12} className="mt-0.5 shrink-0" />
                   {t(lang, 'pdfToImageHint')}
                 </p>
+             </div>
+        )}
+
+        {/* PDF: Split Settings */}
+        {settings.category === 'pdf' && settings.pdfMode === 'split' && (
+             <div className="max-w-md">
+                <label className="block text-sm text-slate-300 mb-2">{t(lang, 'pageRange')}</label>
+                <input 
+                    type="text" 
+                    value={settings.pdfSplitRange}
+                    onChange={(e) => onSettingsChange({...settings, pdfSplitRange: e.target.value})}
+                    disabled={disabled}
+                    placeholder="e.g. 1-5, 8, 11-13"
+                    className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block p-2.5"
+                />
+                <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                  <Info size={12} className="mt-0.5 shrink-0" />
+                  {lang === 'zh' ? '输入要提取的页码范围 (如: 1-3, 5)' : 'Enter page numbers to extract (e.g. 1-3, 5)'}
+                </p>
+             </div>
+        )}
+
+        {/* PDF: Unlock Settings */}
+        {settings.category === 'pdf' && settings.pdfMode === 'unlock' && (
+             <div className="max-w-md">
+                <label className="block text-sm text-slate-300 mb-2">{t(lang, 'password')}</label>
+                <input 
+                    type="password" 
+                    value={settings.pdfPassword || ''}
+                    onChange={(e) => onSettingsChange({...settings, pdfPassword: e.target.value})}
+                    disabled={disabled}
+                    placeholder="Enter password"
+                    className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block p-2.5"
+                />
+                <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                  <Info size={12} className="mt-0.5 shrink-0" />
+                  {lang === 'zh' ? '输入密码以解锁并保存为无密码PDF' : 'Enter password to unlock and save as unsecured PDF'}
+                </p>
+             </div>
+        )}
+
+        {/* PDF: Edit (Rotate) Settings */}
+        {settings.category === 'pdf' && settings.pdfMode === 'edit' && (
+             <div className="max-w-md">
+                <label className="block text-sm text-slate-300 mb-2">{t(lang, 'rotation')}</label>
+                <select
+                  value={settings.pdfRotation}
+                  onChange={(e) => onSettingsChange({...settings, pdfRotation: parseInt(e.target.value) as any})}
+                  disabled={disabled}
+                  className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
+                >
+                  <option value="0">0°</option>
+                  <option value="90">90° CW</option>
+                  <option value="180">180°</option>
+                  <option value="270">270° CW</option>
+                </select>
+                <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                  <Info size={12} className="mt-0.5 shrink-0" />
+                  {lang === 'zh' ? '旋转所有页面' : 'Rotate all pages'}
+                </p>
+             </div>
+        )}
+        
+        {/* PDF: Annotate (Watermark) Settings */}
+        {settings.category === 'pdf' && settings.pdfMode === 'annotate' && (
+             <div className="max-w-md">
+                <label className="block text-sm text-slate-300 mb-2">{t(lang, 'watermarkText')}</label>
+                <input 
+                    type="text" 
+                    value={settings.pdfWatermarkText}
+                    onChange={(e) => onSettingsChange({...settings, pdfWatermarkText: e.target.value})}
+                    disabled={disabled}
+                    placeholder="CONFIDENTIAL"
+                    className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2.5"
+                />
              </div>
         )}
 

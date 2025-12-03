@@ -10,16 +10,35 @@ export const translations = {
     
     // Stats
     totalSaved: 'Total Saved',
+    files: 'Files',
+    done: 'Done',
+    clearAll: 'Clear All',
+    download: 'Download',
+    downloadZip: 'Download ZIP',
+    processing: 'Processing',
+    ready: 'Ready to process files',
+
+    // DropZone
+    dropActive: 'Drop files here',
+    dropTitle: 'Drag & Drop files here',
+    dropSubtitleImage: 'Supports JPG, PNG, WEBP',
+    dropSubtitlePdf: 'Supports PDF files',
+    selectFiles: 'Select Files',
     
     // Modes
     modeCompress: 'Compression',
     modeRemoveBg: 'Remove BG',
     modeConvert: 'Convert',
-    modePdfCompress: 'Compress PDF',
-    modePdfToImage: 'PDF to Image',
+    modePdfCompress: 'Compress',
+    modePdfToImage: 'To Image',
+    modePdfSplit: 'Split',
+    modePdfUnlock: 'Unlock',
+    modePdfEdit: 'Edit',
+    modePdfAnnotate: 'Annotate',
 
     // Settings
     qualityLevel: 'Quality Level',
+    qualityHint: 'Lower quality means smaller file size',
     outputFormat: 'Output Format',
     keepOriginal: 'Keep Original',
     convertJpeg: 'Convert to JPEG',
@@ -31,109 +50,107 @@ export const translations = {
     transparentPng: 'Transparent PNG',
     whiteBgJpeg: 'White BG JPEG',
     compressResult: 'Compress Result',
-    
-    // Hints
-    compressResultHint: 'Optimize the image after removing background',
-    qualityHint: 'Lower quality = smaller file size. 70-80% recommended.',
-    pdfQualityHint: 'Reduces the internal image quality of the PDF.',
-    formatHint: 'WebP is smaller; PNG is lossless.',
-    pdfToImageHint: 'Convert all pages to images. If multiple pages, downloads as ZIP.',
-    
-    // DropZone
-    dropTitle: 'Drag & drop files here',
-    dropActive: 'Drop files to process',
-    dropSubtitleImage: 'Supports JPG, PNG, WebP. Batch processing available.',
-    dropSubtitlePdf: 'Supports PDF documents. Batch processing available.',
-    selectFiles: 'Select Files',
-    
-    // Actions
-    clearAll: 'Clear All',
-    download: 'Download',
-    downloadZip: 'Download ZIP',
-    ready: 'Ready to process your files.',
-    remove: 'Remove',
-    processing: 'Processing...',
-    error: 'Error',
-    files: 'files',
-    done: 'done',
+    compressResultHint: 'Compress the image after removing background',
     
     // Resize
     resizeImages: 'Resize Images',
-    resizeHint: 'Scale down images larger than these dimensions',
     maxWidth: 'Max Width',
     maxHeight: 'Max Height',
     px: 'px',
-    
-    // Convert
+    resizeHint: 'Images larger than these dimensions will be downscaled',
+
+    // Convert Hints
     targetFormat: 'Target Format',
-    convertHint: 'Convert images to different formats.',
-    pdfHint: 'Embeds the image into a PDF page.',
-    icoHint: 'Generates a 256x256 icon suitable for favicons.',
+    formatHint: 'Choose output format',
+    pdfHint: 'Images will be embedded in PDF',
+    icoHint: 'Resized to max 256x256',
+    convertHint: 'Select target format',
+
+    // PDF New Settings
+    pageRange: 'Page Range',
+    password: 'Password',
+    rotation: 'Rotation',
+    watermarkText: 'Watermark Text',
+    pdfQualityHint: 'Adjust PDF compression level',
+    pdfToImageHint: 'Convert pages to images',
   },
   zh: {
     appTitle: 'OptiPress',
-    headerTitle: '图片工具箱',
+    headerTitle: '图片工具',
     catImage: '图片工具',
-    catPdf: 'PDF 工具',
-
-    totalSaved: '总计节省',
+    catPdf: 'PDF工具',
     
-    modeCompress: '图片压缩',
-    modeRemoveBg: '智能抠图',
-    modeConvert: '格式转换',
-    modePdfCompress: 'PDF 压缩',
-    modePdfToImage: 'PDF 转图片',
+    // Stats
+    totalSaved: '已节省',
+    files: '个文件',
+    done: '完成',
+    clearAll: '清空全部',
+    download: '下载',
+    downloadZip: '下载 ZIP',
+    processing: '处理中',
+    ready: '准备处理文件',
 
-    qualityLevel: '压缩质量',
+    // DropZone
+    dropActive: '释放文件',
+    dropTitle: '拖拽文件到这里',
+    dropSubtitleImage: '支持 JPG, PNG, WEBP',
+    dropSubtitlePdf: '支持 PDF 文件',
+    selectFiles: '选择文件',
+    
+    // Modes
+    modeCompress: '压缩',
+    modeRemoveBg: '去背景',
+    modeConvert: '转换',
+    modePdfCompress: '压缩',
+    modePdfToImage: '转图片',
+    modePdfSplit: '拆分',
+    modePdfUnlock: '解密',
+    modePdfEdit: '编辑',
+    modePdfAnnotate: '水印',
+
+    // Settings
+    qualityLevel: '质量等级',
+    qualityHint: '质量越低文件越小',
     outputFormat: '输出格式',
-    keepOriginal: '保持原格式',
+    keepOriginal: '保持原样',
     convertJpeg: '转为 JPEG',
     convertPng: '转为 PNG',
     convertWebp: '转为 WebP',
     convertPdf: '转为 PDF',
     convertIco: '转为 ICO',
-    bgRemovalFormat: '导出格式',
-    transparentPng: '透明背景 PNG',
+    bgRemovalFormat: '结果格式',
+    transparentPng: '透明 PNG',
     whiteBgJpeg: '白底 JPEG',
-    compressResult: '结果压缩',
-    
-    compressResultHint: '抠图后自动压缩图片体积',
-    qualityHint: '质量越低体积越小，推荐 70-80%。',
-    pdfQualityHint: '降低 PDF 内部图片的清晰度以减小体积。',
-    formatHint: 'WebP 体积通常更小；PNG 支持透明。',
-    pdfToImageHint: '将所有页面转换为图片。多页文档将打包为 ZIP 下载。',
-    
-    dropTitle: '拖拽文件到这里',
-    dropActive: '释放以开始处理',
-    dropSubtitleImage: '支持 JPG, PNG, WebP。支持批量处理。',
-    dropSubtitlePdf: '支持 PDF 文档。支持批量处理。',
-    selectFiles: '选择文件',
-    
-    clearAll: '清空列表',
-    download: '下载',
-    downloadZip: '打包下载',
-    ready: '准备就绪，请上传文件。',
-    remove: '移除',
-    processing: '处理中...',
-    error: '失败',
-    files: '个文件',
-    done: '完成',
+    compressResult: '压缩结果',
+    compressResultHint: '去除背景后压缩图片',
     
     // Resize
-    resizeImages: '调整尺寸',
-    resizeHint: '将超过限制的图片按比例缩小',
+    resizeImages: '调整大小',
     maxWidth: '最大宽度',
     maxHeight: '最大高度',
     px: '像素',
-    
-    // Convert
+    resizeHint: '超过此尺寸的图片将被缩小',
+
+    // Convert Hints
     targetFormat: '目标格式',
-    convertHint: '将图片转换为不同的格式。',
-    pdfHint: '将图片嵌入到 PDF 页面中。',
-    icoHint: '生成适用于网站图标的 256x256 图标。',
+    formatHint: '选择输出格式',
+    pdfHint: '图片将被嵌入PDF',
+    icoHint: '调整为最大 256x256',
+    convertHint: '选择目标格式',
+
+    // PDF New Settings
+    pageRange: '页面范围',
+    password: '密码',
+    rotation: '旋转',
+    watermarkText: '水印文本',
+    pdfQualityHint: '调整 PDF 压缩等级',
+    pdfToImageHint: '将页面转换为图片',
   }
 };
 
-export const t = (lang: Language, key: keyof typeof translations['en']) => {
-  return translations[lang][key] || translations['en'][key];
+export const t = (lang: Language, key: keyof typeof translations['en']): string => {
+  const dict = translations[lang] || translations['en'];
+  // Fallback to English if key missing in current lang
+  // @ts-ignore
+  return dict[key] || translations['en'][key] || key;
 };
